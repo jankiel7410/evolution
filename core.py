@@ -3,7 +3,7 @@ import random
 from multiprocessing import Pool as ThreadPool
 
 class Individual:
-    def __init__(self, chromosome=None, chance_of_repr=0.2, chance_of_mutation=0.05):
+    def __init__(self, chromosome=None, chance_of_repr=0.7, chance_of_mutation=0.1):
         self.chromosome = chromosome
         self.__chance_of_repr = chance_of_repr
         self.__chance_of_mutation = chance_of_mutation
@@ -41,6 +41,30 @@ class Individual:
         self.__chromosome = mutated # podmień na zmutowany chromosom
 
 
+class Roulette:
+    def __init__(self, list):#list = uporządkowana tablica osobników
+        self.__list = list
+        spectrum = list[0].rating - list[-1].rating
+        self.__dict = {}
+        last = 0
+        for elem in list:
+            curr = elem.rating/spectrum - last
+            dict[(last, curr)] = elem
+
+    def next(self):#zwraca PARĘ
+        while True:
+            val1, val2 = None, None
+            while val1 is val2:#upewnij się, że wylosowana para to dwa różne osobniki
+                val1, val2 = self.__next(), self.__next()
+            yield val1, val2
+
+    def __next(self):
+        val = random.random
+        for k in self.__dict.keys():
+            if k[0] <= val <= k[1]:
+                return self.__dict[k]
+
+
 class Population:
     def __init__(self, function, population_size=100, cities=5):
         self.__size = population_size
@@ -48,7 +72,6 @@ class Population:
         self.evaluate()
         self.__size = population_size
         self.__fcn = function
-        self.fittest = self.population[0]
 
     def __init_generate_population(self, cities): #wygeneruj pierwsze pokolenie rozwiązań
         for i in range(self.__size):
@@ -64,6 +87,7 @@ class Population:
         for indiv in self.population:
             indiv.rating = self.__fcn(indiv.chromosome)
         self.population.sort(key=lambda indiv: indiv.rating)
+        self.fittest = self.population[0]
 
     def crossover(self):
         new_population = []
@@ -84,4 +108,8 @@ class Population:
             indiv.mutate()
 
     def selection(self):
-        pass
+        roulette = Roulette(self.population)
+        self.__mating_pool = []
+        while len(self.__mating_pool) < 99:
+
+
