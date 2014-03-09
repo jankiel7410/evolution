@@ -50,7 +50,7 @@ class MapCreator2000():
         pygame.display.set_mode((self.w, self.h))#stwórz okno
         self.surface = pygame.display.get_surface()
         compute = Button('Oblicz trasę', (20, self.h - 40), self.solve)
-        read = Button('Wczytaj z pliku', (compute.rect.right+20, self.h - 40), self.solve)
+        read = Button('Wczytaj z pliku', (compute.rect.right+20, self.h - 40), self.read_file)
         clear = Button('Wyczyść', (read.rect.right+20, self.h - 40), self.clear)
         exit = Button('Wyjdź', (clear.rect.right+20, self.h - 40), self.exit)
         self.buttons = [compute, read, clear, exit]
@@ -62,6 +62,28 @@ class MapCreator2000():
         for b in self.buttons:
             if b.hovered:
                 b.event()
+
+    def read_file(self):
+        import tkinter.filedialog
+        path = tkinter.filedialog.askopenfilename()
+        import re
+        with open(path, 'r') as f:
+            lines = f.read()
+            result = re.findall(r'\d+\.\d+ \d+\.\d+', lines)
+            if not result:
+                print('not found')
+                return
+
+            result = [elem.split(' ') for elem in result] # elem: 'x y' -> ['x', 'y']
+            result = [(float(elem[0]), float(elem[1])) for elem in result] # elem: ['x','y'] -> (x, y)
+            import random
+            self.points = []
+            while len(self.points) < 5:
+                elem = random.choice(result)
+                if elem in self.points:
+                    continue
+                self.points.append(elem)
+            self.gamestate = False
 
     def set_circle(self, pos):
         self.points.append((pos[0] + 5, pos[1] + 5))
@@ -78,6 +100,7 @@ class MapCreator2000():
     def draw(self):
         self.surface.fill((255, 255, 255))
         for p in self.points:
+            p = (round(p[0]), round(p[-1]))
             pygame.gfxdraw.aacircle(self.surface, p[0] - 5, p[1] - 5, 5, (0, 0, 0))
             pygame.gfxdraw.filled_circle(self.surface, p[0] - 5, p[1] - 5, 5, (0, 0, 0))
         for b in self.buttons:
@@ -98,6 +121,7 @@ class MapCreator2000():
         while self.gamestate:
             clock.tick(60)
             self.checkMenu()
+            self.draw()
             for event in pygame.event.get():
                 if event.type == QUIT or (event.type == KEYDOWN and event.key == K_ESCAPE):
                     self.gamestate = False
@@ -107,10 +131,7 @@ class MapCreator2000():
                     else:
                         self.check_clicked()#tu jeszcze sprawdzenie nacisniecia przycisku
 
-                self.draw()
-
 
 if __name__ == "__main__":
     m = MapCreator2000()
-    print('ale nadal mam ', m.points)
 
