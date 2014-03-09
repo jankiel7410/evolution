@@ -50,9 +50,10 @@ class MapCreator2000():
         pygame.display.set_mode((self.w, self.h))#stwórz okno
         self.surface = pygame.display.get_surface()
         compute = Button('Oblicz trasę', (20, self.h - 40), self.solve)
-        clear = Button('Wyczyść', (compute.rect.right+20, self.h - 40), self.clear)
+        read = Button('Wczytaj z pliku', (compute.rect.right+20, self.h - 40), self.solve)
+        clear = Button('Wyczyść', (read.rect.right+20, self.h - 40), self.clear)
         exit = Button('Wyjdź', (clear.rect.right+20, self.h - 40), self.exit)
-        self.buttons = [compute, clear, exit]
+        self.buttons = [compute, read, clear, exit]
         self.bounding_box = pygame.Rect(0, self.h-50, self.buttons[-1].rect.right+20, 50)
         self.gamestate = True
         self.loop()         # glowna petla gry
