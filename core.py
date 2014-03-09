@@ -85,3 +85,11 @@ class Population:
 
     def selection(self):
         pass
+
+
+if __name__ == "__main__":
+    import ploter
+    m = ploter.MapCreator2000()
+    cities = m.points
+    import tsp
+    pop = Population(tsp.rate_solution, cities=len(cities))
