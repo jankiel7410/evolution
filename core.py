@@ -65,9 +65,9 @@ class Population:
             indiv.rating = self.__fcn(indiv.chromosome)
         self.population.sort(key=lambda indiv: indiv.rating)
 
-    def crossover(self):
+    def crossover(self):#generuje np. 30 osobników, nie nowe pokolenie (100)
         new_population = []
-        while len(new_population) < self.__size:
+        while len(new_population) < self.__size:#czyli to jest źle.
             i = int(abs(random.gauss(0, 0.3)*100))
             i = i if i < self.__size else self.__size - 1
             j = int(abs(random.gauss(0, 0.3)*100))
