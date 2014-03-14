@@ -58,8 +58,9 @@ class Roulette:
 
 
 class Population:
-    def __init__(self, function, pop_size=100, number_of_cities=5, repr_chance=0.2, mutation_chance=0.1, generations=100):
+    def __init__(self, function, number_of_cities, pop_size=100, repr_chance=0.2, mutation_chance=0.1, generations=100):
         self.offspring = []
+        self.generations = generations
         self.m_chance = mutation_chance
         self.repr_chance = repr_chance
         self.size = pop_size
@@ -68,6 +69,9 @@ class Population:
         self.population = []
         self.__init_generate(number_of_cities)
         self.evaluate()
+        self.population = self.offspring
+        self.info_grabber = None
+        self.iterate()
 
     def __init_generate(self, number_of_cities): #wygeneruj pierwsze pokolenie rozwiązań
         indexes = list(range(number_of_cities)) #lista indeksów miast
@@ -96,7 +100,7 @@ class Population:
         self.offspring = offspring
 
     def mutation(self): # tu tylko wywołanie metody z Individual
-        for indiv in self.population:
+        for indiv in self.offspring:
             indiv.mutate()
 
     def selection(self):
@@ -108,7 +112,18 @@ class Population:
             self.most_fitted = selected[0].rating
 
     def iterate(self):
-        pass
+        self.info_grabber = InfoGrabber()
+        self.info_grabber.get_most_fitted()
+        for i in range(self.generations):
+            self.crossover()
+            self.mutation()
+            self.evaluate()
+            self.info_grabber.get_most_fitted(self.offspring)
+            self.info_grabber.get_least_fitted(self.offspring)
+            self.info_grabber.get_avg(self.offspring)
+            self.selection()
+
+
 
 class InfoGrabber:
     def __init__(self):
@@ -116,13 +131,17 @@ class InfoGrabber:
         self.least_fitted = []
         self.avg = []
 
-    def grab_info(self, population): # wykonywane przy każdej iteracji daje info nt. przebiegu obliczania rozwiązania
-        fittest = min(population.offspring, key=lambda indiv: indiv.rating) # najlepszy z nowego pokolenia, czyli najkrótsza trasa
+    def get_most_fitted(self, individuals):
+        fittest = min(individuals, key=lambda indiv: indiv.rating) # najlepszy z nowego pokolenia, czyli najkrótsza trasa
         self.most_fitted.append(fittest)
-        least_fitted = max(population.offspring, key=lambda indiv: indiv.rating) #najgorszy osobnik to ten z najdłuższą trasą
-        self.least_fitted.append(least_fitted)
-        rating_sum = sum(indiv.rating for indiv in population.population)
-        self.avg = rating_sum / population.size
+
+    def get_least_fitted(self, individuals):
+        fittest = max(individuals, key=lambda indiv: indiv.rating) # najlepszy z nowego pokolenia, czyli najkrótsza trasa
+        self.least_fitted.append(fittest)
+
+    def get_avg(self, individuals):
+        rating_sum = sum(indiv.rating for indiv in individuals)
+        self.avg = rating_sum / len(individuals)
 
 
 
