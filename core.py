@@ -29,16 +29,11 @@ class Individual:
         return p1, p2
 
     def __mutate(self):
-        mutated = self.chromosome[:]
-        original = self.chromosome # do lokalnej zmiennej dla lepszej czytelności
-
-        for i in range(len(original) - 1):
-            if not random.random() < self.m_chance: # szansa, że NIE zostanie zmutowany
-                mutated[i] = original[i] # przepisz
-            else: # przepisz zamienione miejscami
-                mutated[i] = original[i + 1]
-                mutated[i + 1] = original[i]
-        self.chromosome = mutated # podmień na zmutowany chromosom
+        i = random.randint(0, len(self.chromosome) - 1)
+        j = random.randint(0, len(self.chromosome) - 1)
+        gen = self.chromosome[i]
+        self.chromosome[i] = self.chromosome[j]
+        self.chromosome[j] = gen
 
     def __repair(self):
         import collections
