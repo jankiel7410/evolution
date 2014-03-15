@@ -1,32 +1,36 @@
+# -*- coding: UTF-8 -*-
 __author__ = 'Michal'
 import random
 from multiprocessing import Pool as ThreadPool
 
 class Individual:
-    def __init__(self, chromosome=None, mutation_chance=0.1):
+    def __init__(self, valid_genome, chromosome=None, mutation_chance=0.1):
         self.chromosome = chromosome
-
+        self.valid_genome = valid_genome
         self.m_chance = mutation_chance
+        self.__repair()
         self.rating = None
 
     def crossover(self, other):
-        chromosome1, chromosome2 = self.__cross_over(self, other)
-        return Individual(chromosome1, mutation_chance=self.m_chance), Individual(chromosome2,mutation_chance=self.m_chance)
+        chromosome1, chromosome2 = self.__cross_over(other)
+        i1 = Individual(self.valid_genome, chromosome1, self.m_chance)
+        i2 = Individual(self.valid_genome, chromosome2, self.m_chance)
+        return i1, i2
 
     def mutate(self):
         if random.random() < self.m_chance:
             self.__mutate()
+            self.__repair()
 
     def __cross_over(self, other):#krzyżowanie chromosomów
-        point = random.randint(0, len(self.chromosome)-1)
+        point = random.randint(1, len(self.chromosome)-2)
         p1 = self.chromosome[:point] + other.chromosome[point:]
         p2 = other.chromosome[:point] + self.chromosome[point:]
-
         return p1, p2
 
     def __mutate(self):
-        mutated = []
-        original = self.__chromosome # do lokalnej zmiennej dla lepszej czytelności
+        mutated = self.chromosome[:]
+        original = self.chromosome # do lokalnej zmiennej dla lepszej czytelności
 
         for i in range(len(original) - 1):
             if not random.random() < self.m_chance: # szansa, że NIE zostanie zmutowany
@@ -36,11 +40,22 @@ class Individual:
                 mutated[i + 1] = original[i]
         self.chromosome = mutated # podmień na zmutowany chromosom
 
-    def is_valid(self):
+    def __repair(self):
         import collections
         counted_occurrrences = collections.Counter(self.chromosome) # {element: liczba_wystąpień}
-        doubled = [key for key in counted_occurrrences if counted_occurrrences[key] > 1] # dodaj do tablicy doubled jeżeli występuje więcej niż raz
-        return doubled == [] # zwraca true, jeżeli nie znalazł żadnych ddublujących się elementów
+        doubled = {key: counted_occurrrences[key] for key in counted_occurrrences if counted_occurrrences[key] > 1} # dodaj do tablicy doubled jeżeli występuje więcej niż raz
+        if not doubled:
+            return
+        keys = list(doubled.keys())
+        for i in self.valid_genome:
+            if i in self.chromosome:#jeżeli i jest w chromosomie, to wszystko w porządku, idź dalej
+                continue
+
+            self.chromosome[self.chromosome.index(keys[-1])] = i#podmień i za powtarzający się genom
+            doubled[keys[-1]] -= 1 # jedno powtórzenie mniej
+            if doubled[keys[-1]] == 1:#jeżeli zostało jedno powtórzenie genomu z doubled
+                del doubled[keys[-1]]#wyrzuć go ze słownika powtarzających się
+                del keys[-1]#wyrzuć go z kluczy
 
 
 class Roulette:
@@ -71,20 +86,19 @@ class Population:
         self.evaluate()
         self.population = self.offspring
         self.info_grabber = None
-        self.iterate()
 
     def __init_generate(self, number_of_cities): #wygeneruj pierwsze pokolenie rozwiązań
         indexes = list(range(number_of_cities)) #lista indeksów miast
         for i in range(self.size):
             chromosome = indexes[:] #chromosom, na razie kopia indexes
             random.shuffle(chromosome) # poprzestawiaj elementy w losowej kolejności
-            self.offspring.append(Individual(chromosome, mutation_chance=self.m_chance))
+            self.offspring.append(Individual(indexes, chromosome, mutation_chance=self.m_chance))
 
     def evaluate(self):
         for indiv in self.offspring:
             indiv.rating = self.__fcn(indiv.chromosome)
 
-    def crossover(self):#fucking nope
+    def crossover(self):
         offspring = []
         roulette = Roulette(self.population)
         while len(offspring) < self.size*self.repr_chance:
@@ -92,10 +106,8 @@ class Population:
             if parent1 is parent2:#nie chcemy klonów
                 continue
             child1, child2 = parent1.crossover(parent2)
-            if child1.is_valid():
-                offspring.append(child1)
-            if child2.is_valid():
-                offspring.append(child2)
+            offspring.append(child1)
+            offspring.append(child2)
 
         self.offspring = offspring
 
@@ -104,36 +116,40 @@ class Population:
             indiv.mutate()
 
     def selection(self):
-        roulette = Roulette(sorted(self.population + self.offspring))#ruletka z całości
+        roulette = Roulette(sorted(self.population + self.offspring, key=lambda indiv: indiv.rating))#ruletka z całości
         selected = [roulette.next() for i in range(self.size)] # losowane elementy, które znajdą się w kolejnej populacji
         selected.sort(key=lambda indiv: indiv.rating) # od najlepszego do najgorszego
         self.population = selected
-        if selected[0].rating > self.most_fitted:
-            self.most_fitted = selected[0].rating
+        if selected[0].rating < self.most_fitted.rating:
+            self.most_fitted = selected[0]
 
     def iterate(self):
         self.info_grabber = InfoGrabber()
-        self.info_grabber.get_most_fitted()
+        self.info_grabber.get_most_fitted_offspring(self.population)
+        self.most_fitted = self.info_grabber.most_fitted_offspring[0]
+        self.info_grabber.get_most_fitted(self.most_fitted)
+        self.info_grabber.get_least_fitted(self.population)
         for i in range(self.generations):
             self.crossover()
             self.mutation()
             self.evaluate()
-            self.info_grabber.get_most_fitted(self.offspring)
-            self.info_grabber.get_least_fitted(self.offspring)
-            self.info_grabber.get_avg(self.offspring)
             self.selection()
-
+            self.info_grabber.get_most_fitted_offspring(self.offspring)
+            self.info_grabber.get_avg(self.population)
+            self.info_grabber.get_least_fitted(self.population)
+            self.info_grabber.get_most_fitted(self.most_fitted)
 
 
 class InfoGrabber:
     def __init__(self):
         self.most_fitted = []
+        self.most_fitted_offspring = []
         self.least_fitted = []
         self.avg = []
 
-    def get_most_fitted(self, individuals):
+    def get_most_fitted_offspring(self, individuals):
         fittest = min(individuals, key=lambda indiv: indiv.rating) # najlepszy z nowego pokolenia, czyli najkrótsza trasa
-        self.most_fitted.append(fittest)
+        self.most_fitted_offspring.append(fittest)
 
     def get_least_fitted(self, individuals):
         fittest = max(individuals, key=lambda indiv: indiv.rating) # najlepszy z nowego pokolenia, czyli najkrótsza trasa
@@ -141,7 +157,42 @@ class InfoGrabber:
 
     def get_avg(self, individuals):
         rating_sum = sum(indiv.rating for indiv in individuals)
-        self.avg = rating_sum / len(individuals)
+        self.avg.append(rating_sum / len(individuals))
 
+    def get_most_fitted(self, individual):
+        self.most_fitted.append(individual)
 
+if __name__ == "__main__":
+    from random import shuffle
+    v =[0,1,2,3, 4]#1843
+    indvs = []
+    import tsp
+    t = tsp.TSP([(11, 26), (41, 9), (73, 28), (58, 46), (29, 42), (0,0)])
+    for i in range(300):
+        c = v[:]
+        shuffle(c)
+        indiv = Individual(v, c)
+        indiv.rating = t.rate_solution(c)
+        indvs.append(indiv)
+    indvs.sort(key=lambda x: x.rating)
+    print(len(indvs))
+    from matplotlib import pyplot as plt
+    lol = []
+    r = Roulette(indvs)
+    for i in range(100000):
+        lol.append(r.next())
+    print(len(lol))
+    import collections
+    occ = collections.Counter(lol)
+    ll = [(k, occ[k]) for k in occ]
 
+    keys, vals = zip(*ll)
+    vals = list(vals)
+    x = [int(i.rating) for i in keys]
+    print(len(vals))
+    copy = vals[:]
+    vals.sort(key=lambda wat:  x[copy.index(wat)])
+    x.sort()
+    plt.plot(x, vals, marker='o', ls='')
+    # add some
+    plt.show()

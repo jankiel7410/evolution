@@ -1,3 +1,4 @@
+# -*- coding: UTF-8 -*-
 __author__ = 'jankiel'
 
 import matplotlib.pyplot as plt
@@ -76,13 +77,7 @@ class MapCreator2000():
 
             result = [elem.split(' ') for elem in result] # elem: 'x y' -> ['x', 'y']
             result = [(float(elem[0]), float(elem[1])) for elem in result] # elem: ['x','y'] -> (x, y)
-            import random
-            self.points = []
-            while len(self.points) < 5:
-                elem = random.choice(result)
-                if elem in self.points:
-                    continue
-                self.points.append(elem)
+            self.points = result
             self.gamestate = False
 
     def set_circle(self, pos):
@@ -133,5 +128,10 @@ class MapCreator2000():
 
 
 if __name__ == "__main__":
+    #points = [(117, 262), (418, 93), (733, 287), (583, 460), (299, 423)]#1001
     m = MapCreator2000()
+    import tsp
+    if m.points:
+        t = tsp.TSP(m.points)
+        t.evaluate()
 
