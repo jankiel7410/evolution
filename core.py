@@ -54,13 +54,17 @@ class Individual:
 
 class Roulette:
     def __init__(self, individuals):#list = uporządkowana tablica osobników
-        self.probs = [sum(1 / individuals[j].rating for j in individuals[:i+1]) for i in range(len(individuals))] # suma prawdopodob.
+        max_rating = individuals[-1].rating
+        sum_rating = sum([max_rating - i.rating for i in individuals])
+        #[sum([(max - j + 1)/(wat + 1) for j in a[:i+1]]) for i in range(len(a))]
+        self.probs = [sum([(max_rating - j.rating + 1)/(sum_rating + 1) for j in individuals[:i+1]])
+                      for i in range(len(individuals))] # suma prawdopodob.
         self.individuals = {self.probs[i]: individuals[i] for i in range(len(individuals))}
 
     def next(self):
         pick = random.uniform(0, self.probs[-1])#losuj liczbę z zakresu (0, suma z długości tras)
         from bisect import bisect
-        index = bisect(self.probs, pick) - 1
+        index = bisect(self.probs, pick)
         if index < 0 or index >= len(self.probs):
             raise Exception('Roulette.next bisect: out of range index=%d'%index)
         return self.individuals[self.probs[index]]
@@ -186,7 +190,7 @@ if __name__ == "__main__":
     from matplotlib import pyplot as plt
     lol = []
     r = Roulette(indvs)
-    for i in range(30000):
+    for i in range(10000):
         lol.append(r.next())
     print(len(lol))
     import collections
