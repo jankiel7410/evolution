@@ -1,7 +1,6 @@
 # -*- coding: UTF-8 -*-
 __author__ = 'Michal'
 import random
-from multiprocessing import Pool as ThreadPool
 
 class Individual:
     def __init__(self, valid_genome, chromosome=None, mutation_chance=0.1):
@@ -55,16 +54,16 @@ class Individual:
 
 class Roulette:
     def __init__(self, individuals):#list = uporządkowana tablica osobników
-        self.max = sum(1/indiv.rating for indiv in individuals)
-        self.individuals = individuals
+        self.probs = [sum(1 / individuals[j].rating for j in individuals[:i+1]) for i in range(len(individuals))] # suma prawdopodob.
+        self.individuals = {self.probs[i]: individuals[i] for i in range(len(individuals))}
 
-    def next(self):#źle, największą szansę ma teraz koleś, który ma najdłuższą trasę
-        pick = random.uniform(0, self.max)#losuj liczbę z zakresu (0, suma z długości tras)
-        current = 0
-        for individual in self.individuals:
-            current += 1/individual.rating
-            if current > pick:
-                return individual
+    def next(self):
+        pick = random.uniform(0, self.probs[-1])#losuj liczbę z zakresu (0, suma z długości tras)
+        from bisect import bisect
+        index = bisect(self.probs, pick) - 1
+        if index < 0 or index >= len(self.probs):
+            raise Exception('Roulette.next bisect: out of range index=%d'%index)
+        return self.individuals[self.probs[index]]
 
 
 class Population:
@@ -96,11 +95,16 @@ class Population:
     def crossover(self):
         offspring = []
         roulette = Roulette(self.population)
+        i = 0
         while len(offspring) < self.size*self.repr_chance:
             parent1, parent2 = roulette.next(), roulette.next()#losuj ruletką rodziców
+            i+=1
+            if i > 1000:
+                raise Exception('to coś nowego', len(['' for i in self.population if i.rating == parent1.rating]))
             if parent1 is parent2:#nie chcemy klonów
                 continue
             child1, child2 = parent1.crossover(parent2)
+
             offspring.append(child1)
             offspring.append(child2)
 
@@ -112,7 +116,13 @@ class Population:
 
     def selection(self):
         roulette = Roulette(sorted(self.population + self.offspring, key=lambda indiv: indiv.rating))#ruletka z całości
-        selected = [roulette.next() for i in range(self.size)] # losowane elementy, które znajdą się w kolejnej populacji
+        selected = []
+        while len(selected) < self.size:
+            ind = roulette.next()
+            if selected.count(ind):
+                continue
+            selected.append(ind)
+        #selected = [roulette.next() for i in range(self.size)] # losowane elementy, które znajdą się w kolejnej populacji
         selected.sort(key=lambda indiv: indiv.rating) # od najlepszego do najgorszego
         self.population = selected
         if selected[0].rating < self.most_fitted.rating:
@@ -120,10 +130,12 @@ class Population:
 
     def iterate(self):
         self.info_grabber = InfoGrabber()
+        self.population.sort(key=lambda indiv: indiv.rating)
         self.info_grabber.get_most_fitted_offspring(self.population)
         self.most_fitted = self.info_grabber.most_fitted_offspring[0]
         self.info_grabber.get_most_fitted(self.most_fitted)
         self.info_grabber.get_least_fitted(self.population)
+
         for i in range(self.generations):
             self.crossover()
             self.mutation()
@@ -163,7 +175,7 @@ if __name__ == "__main__":
     indvs = []
     import tsp
     t = tsp.TSP([(11, 26), (41, 9), (73, 28), (58, 46), (29, 42), (0,0)])
-    for i in range(300):
+    for i in range(100):
         c = v[:]
         shuffle(c)
         indiv = Individual(v, c)
@@ -174,13 +186,14 @@ if __name__ == "__main__":
     from matplotlib import pyplot as plt
     lol = []
     r = Roulette(indvs)
-    for i in range(100000):
+    for i in range(30000):
         lol.append(r.next())
     print(len(lol))
     import collections
     occ = collections.Counter(lol)
-    ll = [(k, occ[k]) for k in occ]
-
+    print(len({k: occ[k] for k in occ if k is None}), 'wtf')
+    ll = [(k, occ[k]) for k in occ if k is not None or k.rating is not None]
+    print(len(ll))
     keys, vals = zip(*ll)
     vals = list(vals)
     x = [int(i.rating) for i in keys]

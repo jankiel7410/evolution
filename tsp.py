@@ -27,13 +27,12 @@ class TSP:
 
     def evaluate(self):
         import core
-#86503
         p = core.Population(self.rate_solution,
                             len(self.points),
-                            pop_size=300,
+                            pop_size=200,
                             repr_chance=0.4,
                             mutation_chance=0.01,
-                            generations=1000)
+                            generations=500)
         import time
         start = time.time()
         p.iterate()
