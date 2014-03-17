@@ -42,6 +42,35 @@ class Button:
         self.rect.topleft = self.pos
 
 
+class Button:
+    hovered = False
+
+    def __init__(self, text, pos, event=None):
+        self.text = text
+        self.pos = pos
+        self.menu_font = pygame.font.Font(None, 40)
+        self.set_rect()
+        self.event = event if event else lambda: None
+
+    def draw(self, surface):
+        self.set_rend()
+        surface.blit(self.rend, self.rect)
+
+    def set_rend(self):
+        self.rend = self.menu_font.render(self.text, True, self.get_color())
+
+    def get_color(self):
+        if self.hovered:
+            return (180, 180, 180)
+        else:
+            return (100, 100, 100)
+
+    def set_rect(self):
+        self.set_rend()
+        self.rect = self.rend.get_rect()
+        self.rect.topleft = self.pos
+
+
 class MapCreator2000():
     def __init__(self, w=None, h=None):
         self.points = []
