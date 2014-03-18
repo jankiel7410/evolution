@@ -19,7 +19,7 @@ class Individual:
     def mutate(self):
         if random.random() < self.m_chance:
             self.__mutate()
-            self.__repair()
+            #self.__repair()
 
     def __cross_over(self, other):#krzyżowanie chromosomów
 
@@ -159,7 +159,7 @@ class Population:
             self.info_grabber.get_avg(self.population)
             self.info_grabber.get_least_fitted(self.population)
             self.info_grabber.get_most_fitted(self.most_fitted)
-
+        return self.most_fitted
 
 class InfoGrabber:
     def __init__(self):
@@ -198,8 +198,8 @@ if __name__ == "__main__":
     indvs.sort(key=lambda x: x.rating)
     from matplotlib import pyplot as plt
     lol = []
-    r = Roulette(indvs)
-    for i in range(100000):
+    r = Tournament(indvs, delete=False)
+    for i in range(100):
         lol.append(r.next())
     import collections
     occ = collections.Counter(lol)
