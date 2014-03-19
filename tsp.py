@@ -24,30 +24,11 @@ class TSP:
         return total_dist
 
     def evaluate(self, pop_size, repr_chance, mutation_chance, generations, show=True):
-        import core
-        self.p = core.Population(self.rate_solution,
-                            len(self.points),
-                            pop_size=pop_size,
-                            repr_chance=repr_chance,
-                            mutation_chance=mutation_chance,
-                            generations=generations)
-        import time
-        start = time.time()
-        if show:
 
-            self.p.iterate()
-            stop = time.time()
-            print('obliczono trasę w czasie %d sekund' % (stop-start))
-            print('obliczona trasa ma długość: %d' % self.p.most_fitted.rating)
-            self.show()
-            return
-        results = [self.p.iterate().rating for _ in range(10)]
-        avg = sum(results)/len(results)
-        dev = sum([(x - avg)**2 for x in results])/len(results)
-        dev = sqrt(dev)
-        stop = time.time()
-        print('obliczono 10 iteracji w czasie %d sekund' % (stop-start))
-        print('srednia, odchylenie: %d, %d' % (avg, dev))
+        if show:
+            self.with_chart(pop_size, repr_chance, mutation_chance, generations)
+        else:
+            self.avg(pop_size, repr_chance, mutation_chance, generations)
 
     def show(self):
         import matplotlib.pyplot as plt
@@ -82,3 +63,57 @@ class TSP:
         ax2.plot(y, x, color='blue')
 
         plt.show()
+
+    def with_chart(self, pop_size, repr_chance, mutation_chance, generations):
+        import core
+        self.p = core.Population(self.rate_solution,
+                            len(self.points),
+                            pop_size=pop_size,
+                            repr_chance=repr_chance,
+                            mutation_chance=mutation_chance,
+                            generations=generations)
+        import time
+        start = time.time()
+        self.p.iterate()
+        stop = time.time()
+        print('obliczono trasę w czasie %d sekund' % (stop-start))
+        print('obliczona trasa ma długość: %d' % self.p.most_fitted.rating)
+        self.show()
+
+    def avg(self, pop_size, repr_chance, mutation_chance, generations):
+        import core
+        results = []
+        import time
+        start = time.time()
+        for _ in range(10):
+            self.p = core.Population(self.rate_solution,
+                            len(self.points),
+                            pop_size=pop_size,
+                            repr_chance=repr_chance,
+                            mutation_chance=mutation_chance,
+                            generations=generations)
+            results.append(self.p.iterate().rating)
+        avg = sum(results)/len(results)
+        dev = sum([(x - avg)**2 for x in results])/len(results)
+        dev = sqrt(dev)
+        stop = time.time()
+        print('obliczono 10 iteracji w czasie %d sekund' % (stop-start))
+        print('srednia, odchylenie: %d, %d' % (avg, dev))
+
+    def alternative_method(self, iterations):
+        import random
+        from core import Individual
+        indexes = list(range(len(self.points)))
+        chromosome = indexes[:]
+        random.shuffle(chromosome)
+        best = Individual(indexes, chromosome)
+        best.rating = self.rate_solution(best.chromosome)
+        import time
+        start = time.time()
+        for i in range(iterations):
+                chromosome = indexes[:] #chromosom, na razie kopia indexes
+                random.shuffle(chromosome) # poprzestawiaj elementy w losowej kolejności
+                indv = Individual(indexes, chromosome)
+                indv.rating = self.rate_solution(indv.chromosome)
+                best = indv if indv.rating < best.rating else best
+        print(best.rating, ' in ', time.time()-start)

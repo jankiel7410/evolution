@@ -33,7 +33,8 @@ class LetsDoThis:
         e4.grid(column=2, row=4, sticky=(W, E))
 
         ttk.Button(mainframe, text="Wczytaj plik", command=self.read_file).grid(column=1, row=6, sticky=W)
-        ttk.Button(mainframe, text="Wyznacz trasę", command=self.calculate).grid(column=2, row=6, sticky=W)
+        ttk.Button(mainframe, text="Wyznacz trasę", command=self.calculate_evo).grid(column=2, row=6, sticky=W)
+        ttk.Button(mainframe, text="Przegląd losowy", command=self.calculate_random).grid(column=2, row=7, sticky=W)
         self.state = BooleanVar()
         self.state.set(True)
         self.checkbox = ttk.Checkbutton(mainframe, text="wykres", command=self.toggle_label, variable=self.state)
@@ -49,7 +50,7 @@ class LetsDoThis:
             child.grid_configure(padx=5, pady=5)
 
         e1.focus()
-        root.bind('<Return>', self.calculate)
+        root.bind('<Return>', self.calculate_evo)
 
         root.mainloop()
 
@@ -75,15 +76,25 @@ class LetsDoThis:
         else:
             self.checkbox['text'] = 'średnia'
 
-    def calculate(self):
+    def calculate_random(self):
         import tsp
 
         if not self.points:
             return
         t = tsp.TSP(self.points)
-        t.evaluate(int(self.pop_size.get()), float(self.x_chance.get()),
-                   float(self.m_chance.get()), int(self.generations.get()),show=self.state.get())
+        p,x,m,g = int(self.pop_size.get()), float(self.x_chance.get()),float(self.m_chance.get()), int(self.generations.get())
+        #t.evaluate(p, x, m, g)
+        t.alternative_method(int((p*x + p) * g))
 
+    def calculate_evo(self):
+        import tsp
+
+        if not self.points:
+            return
+        t = tsp.TSP(self.points)
+        p,x,m,g = int(self.pop_size.get()), float(self.x_chance.get()),float(self.m_chance.get()), int(self.generations.get())
+        t.evaluate(p, x, m, g)
+        #t.alternative_method(int((p*x + p) * g))
 
 if __name__ == '__main__':
     LetsDoThis()

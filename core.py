@@ -2,6 +2,7 @@
 __author__ = 'Michal'
 import random
 
+
 class Individual:
     def __init__(self, valid_genome, chromosome=None, mutation_chance=0.1):
         self.chromosome = chromosome
@@ -11,6 +12,7 @@ class Individual:
         self.rating = None
 
     def crossover(self, other):
+
         chromosome1, chromosome2 = self.__cross_over(other)
         i1 = Individual(self.valid_genome, chromosome1, self.m_chance)
         i2 = Individual(self.valid_genome, chromosome2, self.m_chance)
@@ -22,11 +24,24 @@ class Individual:
             #self.__repair()
 
     def __cross_over(self, other):#krzyżowanie chromosomów
-
-        point = random.randint(2, len(self.chromosome)-2)
-        p1 = self.chromosome[:point] + other.chromosome[point:]
-        p2 = other.chromosome[:point] + self.chromosome[point:]
+        p1, p2 = self.cross_over_chromosomes(self.chromosome, other.chromosome)
         return p1, p2
+
+    @staticmethod
+    def cross_over_chromosomes(ch1, ch2):#krzyżowanie chromosomów 29216.4532612964 27748.70957813485
+        i = random.randint(0, len(ch1) - 2)
+        j = random.randint(i+1, len(ch1) - 1)
+        #dla pierwszego dziecka
+        middle = ch1[i:j]#pobierz kawalek genomu rodzica 1
+        tmp = [x for x in ch2 if x not in middle]#wyrzuc z genomu 2 geny wystepujace w middle
+        start, end = tmp[:i], tmp[i:] # podziel pozostalosc genomu 2 na 2 czesci pasujace do genomu 1
+        child1 = start + middle + end # polacz czesci razem
+        #dla drugiego dziecka
+        middle = ch2[i:j]
+        tmp = [x for x in ch1 if x not in middle]
+        start, end = tmp[:i], tmp[i:]
+        child2 = start + middle + end
+        return child1, child2
 
     def __mutate(self):
         i = random.randint(0, len(self.chromosome) - 2)
@@ -56,13 +71,14 @@ class Individual:
 def key_cfn(indv):
     return indv.rating
 
+
 class Tournament:
     def __init__(self, individuals, delete=False):#list = uporządkowana tablica osobników
         self.indv = individuals[:]
         self.delete = delete
 
     def next(self):
-        group = [self.indv[random.randint(0, len(self.indv)-1)] for _ in range(4)]
+        group = [self.indv[random.randint(0, len(self.indv)-1)] for _ in range(3)]
         best = min(group, key=key_cfn)
         if self.delete:
             del self.indv[self.indv.index(best)]
@@ -160,6 +176,7 @@ class Population:
             self.info_grabber.get_least_fitted(self.population)
             self.info_grabber.get_most_fitted(self.most_fitted)
         return self.most_fitted
+
 
 class InfoGrabber:
     def __init__(self):
